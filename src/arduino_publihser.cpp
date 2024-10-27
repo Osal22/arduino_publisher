@@ -66,6 +66,7 @@ public:
     _odm_msg.pose.pose.position.z=0.0;
 
     _odm_msg.pose.pose.orientation=toQuaternion(msg->rot);
+    odom_pub->publish(_odm_msg);
 
     // tf_broadcaster_->sendTransform(t);
   }
