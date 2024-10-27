@@ -11,6 +11,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/msg/twist.hpp>
 #include <motor_data_msgs_ros2/msg/motor_data_msgs_ros.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 
 // ROS1 related headers
 #include <ros/ros.h>
@@ -28,18 +29,21 @@ public:
   ArduinoPublisher() : Node("arduino_publihser"), logger_(get_logger()) {
     subscription_ = this->create_subscription<motor_data_msgs_ros2::msg::MotorDataMsgsRos>(
       "motors_cmd", 10, std::bind(&ArduinoPublisher::topic_callback, this, std::placeholders::_1));
+    /* ros1*/
     int argc = 0;
     char **argv = NULL;
     ros::init(argc, argv, "arduino_publihser");
     ros::NodeHandle nh;
     motors_pub = nh.advertise<motors_data_msgs_ros1::Motors>("arduino_pub", 1000);
-    tf_sub_=nh.subscribe("odom_data", 1000, &ArduinoPublisher::odom_data_callback,this);
+    /* */
+    odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("odom", 10);
+    tf_sub_=nh.subscribe("odom_tf_data", 1000, &ArduinoPublisher::odom_data_callback,this);
     timer_ = this->create_wall_timer(
             std::chrono::milliseconds(10), 
             std::bind(&ArduinoPublisher::timerCallback, this)
         );
-    tf_broadcaster_ =
-      std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+    // tf_broadcaster_ =
+    //   std::make_unique<tf2_ros::TransformBroadcaster>(*this);
   }
   void odom_data_callback(const motors_data_msgs_ros1::TfFeedback::ConstPtr& msg){
     geometry_msgs::msg::TransformStamped t;
@@ -53,10 +57,20 @@ public:
     t.transform.translation.z = 0.0;
 
     t.transform.rotation=toQuaternion(msg->rot);
-    tf_broadcaster_->sendTransform(t);
+
+    nav_msgs::msg::Odometry _odm_msg;
+    _odm_msg.header.frame_id="odom";
+    _odm_msg.child_frame_id="base_link";
+    _odm_msg.pose.pose.position.x=msg->x;
+    _odm_msg.pose.pose.position.y=msg->y;
+    _odm_msg.pose.pose.position.z=0.0;
+
+    _odm_msg.pose.pose.orientation=toQuaternion(msg->rot);
+
+    // tf_broadcaster_->sendTransform(t);
   }
   void timerCallback() {
-      RCLCPP_INFO_STREAM(logger_,"okay action");
+      // RCLCPP_INFO_STREAM(logger_,"okay action");
  
   }
   geometry_msgs::msg::Quaternion toQuaternion(double yaw) {
@@ -87,8 +101,11 @@ private:
     motors_pub.publish(_slam_bot_motors);
   }
   rclcpp::Subscription<motor_data_msgs_ros2::msg::MotorDataMsgsRos>::SharedPtr subscription_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub;
+
   rclcpp::TimerBase::SharedPtr timer_;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  // std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+  std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
   ros::Publisher motors_pub;
   ros::Subscriber tf_sub_;
   motors_data_msgs_ros1::TfFeedback _odom_tf_msg;
