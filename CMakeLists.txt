@@ -11,15 +11,16 @@ find_package(motor_data_msgs REQUIRED)
 find_package(motor_data_msgs_ros2 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
-  geometry_msgs
   message_filters
   nodelet
   pluginlib
   roscpp
   sensor_msgs
-  tf2
   tf2_geometry_msgs
+  geometry_msgs
   tf2_ros
+  std_msgs
+  tf
   motor_data_msgs_ros2)
   include_directories(
     include
@@ -33,9 +34,10 @@ rclcpp
 std_msgs
 std_srvs
 sensor_msgs
-tf
+tf2_ros
+tf2
 geometry_msgs
-motor_data_msgs)
+motor_data_msgs_ros2)
 
 
 ament_auto_package()
